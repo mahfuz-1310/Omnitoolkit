@@ -1,0 +1,2 @@
+sed -i -e '/newNicks.forEach { viewModel.addHistory("NICKNAME", it) }/c\                    newNicks.forEach { viewModel.addHistory("NICKNAME", com.example.utils.FontStyles.apply(it, fontStyle)) }' \
+       -e '/viewModel.addHistory("NICKNAME", newNick)/c\                        viewModel.addHistory("NICKNAME", com.example.utils.FontStyles.apply(newNick, fontStyle))' app/src/main/java/com/example/ui/screens/NicknameGenScreen.kt

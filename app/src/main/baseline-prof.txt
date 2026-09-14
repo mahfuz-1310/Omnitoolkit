@@ -1,0 +1,45 @@
+# Baseline Profile for NameGen Pro
+# Generated to optimize cold start (TTID/TTFF) for MainActivity, Navigation, and Home screens
+
+Lcom/example/MainActivity;
+Lcom/example/MainActivity$onCreate$$inlined$setContent$1;
+Lcom/example/NameGenApplication;
+Lcom/example/ui/MainViewModel;
+Lcom/example/ui/screens/HomeScreenKt;
+Lcom/example/ui/screens/SystemDashboardScreenKt;
+Lcom/example/ui/navigation/NavigationKt;
+Lcom/example/ui/navigation/Screen;
+Lcom/example/ui/components/BottomNavigationBarKt;
+Lcom/example/feature/common/startup/StartupDefer;
+Lcom/example/feature/common/metrics/StartupMetrics;
+Lcom/example/feature/system/apps/AppManagerViewModel;
+Lcom/example/feature/system/wifi/WifiControllerViewModel;
+Lcom/example/data/db/AppDatabase;
+Lcom/example/data/repository/HistoryRepository;
+Lcom/example/data/repository/FavoriteRepository;
+Lcom/example/data/repository/SettingsRepository;
+
+# AndroidX Core & Lifecycle
+Landroidx/core/app/ComponentActivity;
+Landroidx/activity/ComponentActivity;
+Landroidx/activity/compose/ComponentActivityKt;
+Landroidx/lifecycle/ProcessLifecycleOwner;
+Landroidx/lifecycle/LifecycleOwner;
+Landroidx/lifecycle/ViewModel;
+Landroidx/lifecycle/compose/FlowExtKt;
+
+# Compose Runtime and Foundation
+Landroidx/compose/runtime/Composer;
+Landroidx/compose/runtime/ComposerImpl;
+Landroidx/compose/runtime/Recomposer;
+Landroidx/compose/ui/platform/AndroidComposeView;
+Landroidx/compose/ui/node/LayoutNode;
+Landroidx/compose/material3/ScaffoldKt;
+Landroidx/compose/material3/MaterialThemeKt;
+Landroidx/compose/material3/SurfaceKt;
+Landroidx/compose/material3/TextKt;
+Landroidx/compose/material3/CardKt;
+Landroidx/compose/foundation/layout/BoxKt;
+Landroidx/compose/foundation/layout/ColumnKt;
+Landroidx/compose/foundation/layout/RowKt;
+Landroidx/compose/foundation/lazy/LazyColumnKt;

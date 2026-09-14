@@ -1,0 +1,1 @@
+sed -i -n '1h;1!H;${g;s/if (mode == "Full Name" || mode == "First Name") {.*if (mode == "Full Name" || mode == "Last Name") {/REPLACED_SECTION/g;p;}' app/src/main/java/com/example/ui/screens/NameGenScreen.kt

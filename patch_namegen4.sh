@@ -1,0 +1,6 @@
+sed -i -e '/text = heroResult.name,/c\                                text = com.example.utils.FontStyles.apply(heroResult.name, fontStyle),' \
+       -e '/ClipData.newPlainText("Name", heroResult.name))/c\                                        clipboard.setPrimaryClip(ClipData.newPlainText("Name", com.example.utils.FontStyles.apply(heroResult.name, fontStyle)))' \
+       -e '/val isFav by viewModel.isFavorite("NAME", heroResult.name)/c\                                val isFav by viewModel.isFavorite("NAME", com.example.utils.FontStyles.apply(heroResult.name, fontStyle)).collectAsStateWithLifecycle(initialValue = false)' \
+       -e '/if(isFav) viewModel.removeFavorite("NAME", heroResult.name)/c\                                        if(isFav) viewModel.removeFavorite("NAME", com.example.utils.FontStyles.apply(heroResult.name, fontStyle))' \
+       -e '/else viewModel.addFavorite("NAME", heroResult.name)/c\                                        else viewModel.addFavorite("NAME", com.example.utils.FontStyles.apply(heroResult.name, fontStyle))' \
+       -e '/name = result.name,/c\                        name = com.example.utils.FontStyles.apply(result.name, fontStyle),' app/src/main/java/com/example/ui/screens/NameGenScreen.kt
