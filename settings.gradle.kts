@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "NameGen Pro"
+rootProject.name = "Arw Hyper Toolkit"
 
 include(":app")

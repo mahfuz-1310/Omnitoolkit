@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -39,7 +41,16 @@ import com.example.ui.MainViewModel
 import com.example.ui.navigation.Screen
 
 @Immutable
-data class ToolItem(val name: String, val icon: ImageVector, val route: String, val color: androidx.compose.ui.graphics.Color)
+data class ToolItem(val name: String, val icon: ImageVector, val route: String, val color: androidx.compose.ui.graphics.Color? = null)
+
+@Composable
+private fun getGeneratorTileIconColor(isWhiteTheme: Boolean): androidx.compose.ui.graphics.Color {
+    return if (isWhiteTheme) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,23 +66,27 @@ fun GenerateDashboardScreen(navController: NavController, viewModel: MainViewMod
             viewModel.onGenerateVisible()
         }
     }
+
+    val isWhiteTheme by viewModel.whiteTheme.collectAsStateWithLifecycle()
+    val tileIconColor = getGeneratorTileIconColor(isWhiteTheme)
+
     val tools = listOf(
-        ToolItem("Name Generator", Icons.Filled.Person, Screen.NameGen.route, MaterialTheme.colorScheme.primary),
-        ToolItem("Middle Name Generator", Icons.Filled.Badge, Screen.MiddleNameGen.route, MaterialTheme.colorScheme.secondary),
-        ToolItem("First + Middle Name Generator", Icons.Filled.People, Screen.FirstMiddleGen.route, MaterialTheme.colorScheme.tertiary),
-        ToolItem("Username Generator", Icons.Filled.AlternateEmail, Screen.UsernameGen.route, MaterialTheme.colorScheme.error),
-        ToolItem("Nickname Generator", Icons.Filled.Face, Screen.NicknameGen.route, MaterialTheme.colorScheme.primary),
-        ToolItem("Stylish Text Generator", Icons.Filled.FontDownload, Screen.StylishTextGen.route, MaterialTheme.colorScheme.secondary),
+        ToolItem("Name Generator", Icons.Filled.Person, Screen.NameGen.route),
+        ToolItem("Middle Name Generator", Icons.Filled.Badge, Screen.MiddleNameGen.route),
+        ToolItem("First + Middle Name Generator", Icons.Filled.People, Screen.FirstMiddleGen.route),
+        ToolItem("Username Generator", Icons.Filled.AlternateEmail, Screen.UsernameGen.route),
+        ToolItem("Nickname Generator", Icons.Filled.Face, Screen.NicknameGen.route),
+        ToolItem("Stylish Text Generator", Icons.Filled.FontDownload, Screen.StylishTextGen.route),
         
         // Other tools
-        ToolItem("Smart Assistant", Icons.Filled.AutoAwesome, Screen.SmartAssistant.route, MaterialTheme.colorScheme.primary),
-        ToolItem("Passwords", Icons.Filled.Lock, Screen.PasswordGen.route, MaterialTheme.colorScheme.error),
-        ToolItem("Bio Maker", Icons.Filled.TextSnippet, Screen.BioGen.route, MaterialTheme.colorScheme.secondary),
-        ToolItem("Random Profile", Icons.Filled.AssignmentInd, Screen.RandomProfile.route, MaterialTheme.colorScheme.error),
-        ToolItem("Name Mixer", Icons.Filled.Shuffle, Screen.NameMixer.route, MaterialTheme.colorScheme.primary),
-        ToolItem("Username Builder", Icons.Filled.Build, Screen.UsernameBuilder.route, MaterialTheme.colorScheme.secondary),
-        ToolItem("Text Saver", Icons.Filled.Save, Screen.TextSaver.route, MaterialTheme.colorScheme.primary),
-        ToolItem("Coin Toss", Icons.Filled.Casino, Screen.CoinToss.route, MaterialTheme.colorScheme.tertiary)
+        ToolItem("Smart Assistant", Icons.Filled.AutoAwesome, Screen.SmartAssistant.route),
+        ToolItem("Passwords", Icons.Filled.Lock, Screen.PasswordGen.route),
+        ToolItem("Bio Maker", Icons.Filled.TextSnippet, Screen.BioGen.route),
+        ToolItem("Random Profile", Icons.Filled.AssignmentInd, Screen.RandomProfile.route),
+        ToolItem("Name Mixer", Icons.Filled.Shuffle, Screen.NameMixer.route),
+        ToolItem("Username Builder", Icons.Filled.Build, Screen.UsernameBuilder.route),
+        ToolItem("Text Saver", Icons.Filled.Save, Screen.TextSaver.route),
+        ToolItem("Coin Toss", Icons.Filled.Casino, Screen.CoinToss.route)
     )
 
     val context = LocalContext.current
@@ -103,8 +118,10 @@ fun GenerateDashboardScreen(navController: NavController, viewModel: MainViewMod
                             com.example.utils.SoundEffectManager.playClick()
                             navController.navigate(Screen.History.route)
                         },
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f))
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -158,6 +175,7 @@ fun GenerateDashboardScreen(navController: NavController, viewModel: MainViewMod
                                             .fillMaxWidth()
                                             .clip(RoundedCornerShape(12.dp))
                                             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+                                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
                                             .clickable {
                                                 copyToClipboard(context, item.content, item.type, viewModel)
                                             }
@@ -167,16 +185,16 @@ fun GenerateDashboardScreen(navController: NavController, viewModel: MainViewMod
                                     ) {
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                text = item.content,
-                                                style = MaterialTheme.typography.bodyLarge,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MaterialTheme.colorScheme.onSurface
+                                                 text = item.content,
+                                                 style = MaterialTheme.typography.bodyLarge,
+                                                 fontWeight = FontWeight.SemiBold,
+                                                 color = MaterialTheme.colorScheme.onSurface
                                             )
                                             Text(
-                                                text = item.type,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                fontWeight = FontWeight.Bold
+                                                 text = item.type,
+                                                 style = MaterialTheme.typography.labelSmall,
+                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                 fontWeight = FontWeight.Bold
                                             )
                                         }
                                         Icon(
@@ -202,8 +220,9 @@ fun GenerateDashboardScreen(navController: NavController, viewModel: MainViewMod
                             com.example.utils.SoundEffectManager.playClick()
                             navController.navigate(tool.route)
                         },
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(
@@ -216,7 +235,7 @@ fun GenerateDashboardScreen(navController: NavController, viewModel: MainViewMod
                         Icon(
                             imageVector = tool.icon,
                             contentDescription = tool.name,
-                            tint = tool.color,
+                            tint = tool.color ?: tileIconColor,
                             modifier = Modifier.size(36.dp)
                         )
                         Spacer(modifier = Modifier.height(16.dp))

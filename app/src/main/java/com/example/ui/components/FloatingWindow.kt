@@ -455,7 +455,7 @@ fun FloatingWindowOverlay(viewModel: MainViewModel) {
                                     }
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        "NameGen Studio",
+                                        com.example.utils.AppConstants.APP_NAME,
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold
                                     )

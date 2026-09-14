@@ -44,8 +44,8 @@ fun SpeedTestSection(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Header
@@ -243,7 +243,7 @@ private fun MetricCard(
     modifier: Modifier = Modifier
 ) {
     val borderColor by animateColorAsState(
-        targetValue = if (isActive) accentColor else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
+        targetValue = if (isActive) accentColor else MaterialTheme.colorScheme.outline,
         label = "MetricBorder"
     )
 

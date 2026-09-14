@@ -14,6 +14,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -184,7 +185,7 @@ fun SystemDashboardScreen(
                     subtitle = if (isMockActive) "Broadcasting: $currentPresetName ($mockUpdateCount fixes)" else "Ready (Lat: $savedLat, Lng: $savedLng)",
                     icon = Icons.Default.LocationOn,
                     badge = if (isMockActive) "BROADCASTING" else "IDLE",
-                    badgeColor = if (isMockActive) Color(0xFF10B981) else MaterialTheme.colorScheme.secondary,
+                    badgeColor = if (isMockActive) Color(0xFF10B981) else MaterialTheme.colorScheme.outline,
                     isExpanded = isFakeGpsExpanded,
                     onToggleExpand = {
                         SoundEffectManager.playClick()
@@ -224,9 +225,9 @@ fun SystemDashboardScreen(
 
                         // INTERACTIVE MAP PICKER PROMINENT BUTTON
                         Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+                            shape = RoundedCornerShape(18.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
@@ -476,7 +477,7 @@ fun SystemDashboardScreen(
                     subtitle = "Current: ${selectedDnsProvider.name}",
                     icon = Icons.Default.Security,
                     badge = "Active",
-                    badgeColor = MaterialTheme.colorScheme.primary,
+                    badgeColor = Color(0xFF10B981),
                     isExpanded = isDnsExpanded,
                     onToggleExpand = {
                         SoundEffectManager.playClick()
@@ -515,9 +516,9 @@ fun SystemDashboardScreen(
                                             Toast.makeText(context, "Selected ${provider.name}. Tap below to apply via Settings or Shizuku", Toast.LENGTH_SHORT).show()
                                         }
                                     },
-                                shape = RoundedCornerShape(10.dp),
-                                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                                shape = RoundedCornerShape(14.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                                border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
                             ) {
                                 Row(
                                     modifier = Modifier
@@ -637,15 +638,11 @@ fun SystemDashboardScreen(
 
                 val badgeColor = when {
                     isUserStopped || isShizukuStopped -> MaterialTheme.colorScheme.error
-                    shizukuPermGranted && shizukuAvailable -> MaterialTheme.colorScheme.primary
-                    else -> MaterialTheme.colorScheme.outline
+                    shizukuPermGranted && shizukuAvailable -> Color(0xFF10B981)
+                    else -> Color(0xFFFF9800)
                 }
 
-                val statusDotColor = when {
-                    isUserStopped || isShizukuStopped -> Color(0xFFE53935)
-                    !shizukuAvailable || !shizukuPermGranted -> Color(0xFFFF9800)
-                    else -> Color(0xFF4CAF50)
-                }
+                val statusDotColor = badgeColor
 
                 SystemFeatureCard(
                     title = "Shizuku Access",
@@ -836,7 +833,7 @@ fun SystemDashboardScreen(
                     subtitle = "Window/Transition/Animator scales: ${animScale}x",
                     icon = Icons.Default.Speed,
                     badge = if (hasShizukuPerm) "ADB Ready" else "Shizuku Required",
-                    badgeColor = if (hasShizukuPerm) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
+                    badgeColor = if (hasShizukuPerm) Color(0xFF10B981) else MaterialTheme.colorScheme.error,
                     isExpanded = isAnimationExpanded,
                     onToggleExpand = {
                         SoundEffectManager.playClick()
@@ -970,8 +967,10 @@ fun SystemDashboardScreen(
                                 SoundEffectManager.playClick()
                                 navController.navigate(Screen.Modules.route)
                             },
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                     ) {
                         Column(
                             modifier = Modifier.fillMaxSize().padding(12.dp),
@@ -992,8 +991,10 @@ fun SystemDashboardScreen(
                                 SoundEffectManager.playClick()
                                 navController.navigate(Screen.ImageMetadataEditor.route)
                             },
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f))
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                     ) {
                         Column(
                             modifier = Modifier.fillMaxSize().padding(12.dp),
@@ -1079,8 +1080,9 @@ fun SystemFeatureCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
@@ -1094,10 +1096,11 @@ fun SystemFeatureCard(
                     modifier = Modifier
                         .size(46.dp)
                         .clip(CircleShape)
-                        .background(badgeColor.copy(alpha = 0.15f)),
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(imageVector = icon, contentDescription = null, tint = badgeColor, modifier = Modifier.size(24.dp))
+                    Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
                 }
 
                 Spacer(modifier = Modifier.width(14.dp))
@@ -1131,8 +1134,9 @@ fun SystemFeatureCard(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = badgeColor.copy(alpha = 0.15f)
+                    shape = RoundedCornerShape(8.dp),
+                    color = badgeColor.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.35f))
                 ) {
                     Text(
                         text = badge,

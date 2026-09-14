@@ -29,7 +29,7 @@ object IconManager {
             name = "Default Blue",
             alias = ".DefaultBlue",
             description = "Standard clean blue theme",
-            drawableResId = R.drawable.namegen_premium_logo_1787339369777,
+            drawableResId = R.drawable.omnikit_logo_1789391961077,
             isDefault = true
         ),
         IconVariant(

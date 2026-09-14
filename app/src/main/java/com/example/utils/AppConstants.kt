@@ -1,5 +1,5 @@
 package com.example.utils
 
 object AppConstants {
-    const val APP_NAME = "OmniKit"
+    const val APP_NAME = "Arw Hyper Toolkit"
 }

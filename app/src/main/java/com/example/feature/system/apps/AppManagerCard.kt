@@ -110,7 +110,7 @@ fun AppManagerCard(
         subtitle = "${installedApps.size} Installed Apps • $historyCount History Logs",
         icon = Icons.Default.Apps,
         badge = if (disabledApps.isNotEmpty()) "${disabledApps.size} Disabled" else "${installedApps.size} Apps",
-        badgeColor = if (disabledApps.isNotEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
+        badgeColor = if (disabledApps.isNotEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
         isExpanded = isExpanded,
         onToggleExpand = onToggleExpand
     ) {

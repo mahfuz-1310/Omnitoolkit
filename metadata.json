@@ -1,6 +1,6 @@
 {
-  "name": "OmniKit",
-  "description": "A fast, lightweight and modern generator app that allows users to generate stylish names, usernames and secure passwords.",
+  "name": "Arw Hyper Toolkit",
+  "description": "A fast, lightweight and modern toolkit and system diagnostics app with advanced hardware utilities, generators, and customization.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,7 +42,7 @@ fun AboutScreen(navController: NavController) {
             verticalArrangement = Arrangement.Center
         ) {
             val context = androidx.compose.ui.platform.LocalContext.current
-            val resourceId = context.resources.getIdentifier("namegen_premium_logo_1787339369777", "drawable", context.packageName)
+            val resourceId = context.resources.getIdentifier("omnikit_logo_1789391961077", "drawable", context.packageName)
             
             if (resourceId != 0) {
                 Image(
@@ -81,7 +82,7 @@ fun AboutScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(32.dp))
             
             Text(
-                text = "A fast, lightweight, and modern generator app that allows users to generate stylish names, usernames, and secure passwords effortlessly.",
+                text = "A fast, lightweight, and modern system diagnostics and toolkit suite featuring deep hardware analysis, security scanning, performance modules, and creative generators.",
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -90,8 +91,9 @@ fun AboutScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(36.dp))
 
             Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(

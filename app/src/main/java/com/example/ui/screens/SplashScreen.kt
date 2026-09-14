@@ -151,7 +151,7 @@ fun SplashScreen(
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "Smart Generator & Utilities Suite",
+                text = "Hyper Diagnostics & Toolkit Suite",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

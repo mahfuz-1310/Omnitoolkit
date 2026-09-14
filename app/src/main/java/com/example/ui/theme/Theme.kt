@@ -53,21 +53,22 @@ fun NameGenProTheme(
         outline = Color(0xFFCCCCCC)
     )
     val whiteColorScheme = lightColorScheme(
-        primary = Color.Black,
+        primary = uiColor,
         onPrimary = Color.White,
-        primaryContainer = Color(0xFFE0E0E0),
-        onPrimaryContainer = Color.Black,
-        secondary = Color.Black,
+        primaryContainer = uiColor.copy(alpha = 0.12f),
+        onPrimaryContainer = uiColor,
+        secondary = uiColor,
         onSecondary = Color.White,
-        secondaryContainer = Color(0xFFF0F0F0),
-        onSecondaryContainer = Color.Black,
+        secondaryContainer = Color(0xFFF2F4F7),
+        onSecondaryContainer = Color(0xFF1D2939),
         background = Color(0xFFFFFFFF),
-        onBackground = Color(0xFF000000),
-        surface = Color(0xFFF8F8F8),
-        onSurface = Color(0xFF000000),
-        surfaceVariant = Color(0xFFEEEEEE),
-        onSurfaceVariant = Color(0xFF444444),
-        outline = Color(0xFFDDDDDD)
+        onBackground = Color(0xFF101828),
+        surface = Color(0xFFFFFFFF),
+        onSurface = Color(0xFF101828),
+        surfaceVariant = Color(0xFFF2F4F7),
+        onSurfaceVariant = Color(0xFF475467),
+        outline = Color(0xFFD0D5DD),
+        outlineVariant = Color(0xFFE4E7EC)
     )
 
     val colorScheme = when {
@@ -76,7 +77,7 @@ fun NameGenProTheme(
         else -> lightColorScheme
     }
 
-    val finalButtonColor = if (whiteTheme) Color.Black else buttonColor
+    val finalButtonColor = if (whiteTheme) uiColor else buttonColor
 
     CompositionLocalProvider(LocalButtonColor provides finalButtonColor) {
         MaterialTheme(

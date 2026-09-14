@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -27,11 +28,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.ui.MainViewModel
 import com.example.utils.ExifEditorUtils
 import com.example.utils.ExifMetadata
+import com.example.utils.ExportFormat
+import com.example.utils.SaveResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -44,21 +48,31 @@ import java.util.Locale
 fun ImageMetadataEditorScreen(navController: NavController, viewModel: MainViewModel) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var metadata by remember { mutableStateOf<ExifMetadata?>(null) }
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var originalFileName by remember { mutableStateOf("") }
 
+    // Export & file settings
+    var customFileName by remember { mutableStateOf("") }
+    var subFolderName by remember { mutableStateOf("Image Metadata Editor") }
+    var selectedFormat by remember { mutableStateOf(ExportFormat.ORIGINAL) }
+    var exportQuality by remember { mutableFloatStateOf(95f) }
+    var preserveLossless by remember { mutableStateOf(true) }
+
+    // Metadata modifications
     var removeAllMetadata by remember { mutableStateOf(false) }
     var removeLocationData by remember { mutableStateOf(false) }
     var removeDeviceInfo by remember { mutableStateOf(false) }
-    var keepQuality by remember { mutableStateOf(true) }
     var makeInput by remember { mutableStateOf("") }
     var modelInput by remember { mutableStateOf("") }
     var dateTimeInput by remember { mutableStateOf("") }
 
     var showPreviewDialog by remember { mutableStateOf(false) }
-    var savedResultUri by remember { mutableStateOf<Uri?>(null) }
+    var saveResult by remember { mutableStateOf<SaveResult?>(null) }
+    var isSaving by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -66,9 +80,10 @@ fun ImageMetadataEditorScreen(navController: NavController, viewModel: MainViewM
     ) { uri ->
         if (uri != null) {
             selectedImageUri = uri
-            savedResultUri = null
+            saveResult = null
             isLoading = true
             coroutineScope.launch(Dispatchers.IO) {
+                val origName = ExifEditorUtils.getOriginalFileName(context, uri)
                 val meta = ExifEditorUtils.readMetadata(context, uri)
                 val bmp = try {
                     context.contentResolver.openInputStream(uri)?.use { stream ->
@@ -78,6 +93,10 @@ fun ImageMetadataEditorScreen(navController: NavController, viewModel: MainViewM
                     null
                 }
                 withContext(Dispatchers.Main) {
+                    originalFileName = origName
+                    val baseName = origName.substringBeforeLast(".")
+                    val ext = origName.substringAfterLast(".", "jpg")
+                    customFileName = "edited_${baseName}.$ext"
                     metadata = meta
                     bitmap = bmp
                     makeInput = meta.make ?: ""
@@ -86,6 +105,9 @@ fun ImageMetadataEditorScreen(navController: NavController, viewModel: MainViewM
                     removeAllMetadata = false
                     removeLocationData = false
                     removeDeviceInfo = false
+                    preserveLossless = true
+                    selectedFormat = ExportFormat.ORIGINAL
+                    exportQuality = 95f
                     isLoading = false
                 }
             }
@@ -93,6 +115,7 @@ fun ImageMetadataEditorScreen(navController: NavController, viewModel: MainViewM
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Image Metadata Editor", fontWeight = FontWeight.Bold) },
@@ -125,12 +148,19 @@ fun ImageMetadataEditorScreen(navController: NavController, viewModel: MainViewM
                                 makeInput = metadata?.make ?: ""
                                 modelInput = metadata?.model ?: ""
                                 dateTimeInput = metadata?.dateTimeOriginal ?: ""
+                                val baseName = originalFileName.substringBeforeLast(".")
+                                val ext = originalFileName.substringAfterLast(".", "jpg")
+                                customFileName = "edited_${baseName}.$ext"
                                 removeAllMetadata = false
                                 removeLocationData = false
                                 removeDeviceInfo = false
+                                preserveLossless = true
+                                selectedFormat = ExportFormat.ORIGINAL
+                                exportQuality = 95f
                                 Toast.makeText(context, "Reset to original metadata", Toast.LENGTH_SHORT).show()
                             },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(14.dp)
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
@@ -139,7 +169,8 @@ fun ImageMetadataEditorScreen(navController: NavController, viewModel: MainViewM
 
                         OutlinedButton(
                             onClick = { showPreviewDialog = true },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(14.dp)
                         ) {
                             Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
@@ -148,10 +179,17 @@ fun ImageMetadataEditorScreen(navController: NavController, viewModel: MainViewM
 
                         Button(
                             onClick = {
+                                if (isSaving) return@Button
+                                isSaving = true
                                 coroutineScope.launch(Dispatchers.IO) {
-                                    val resultUri = ExifEditorUtils.saveEditedImage(
+                                    val result = ExifEditorUtils.saveEditedImageToGallery(
                                         context = context,
                                         sourceUri = selectedImageUri!!,
+                                        customFileName = customFileName,
+                                        subFolder = subFolderName,
+                                        format = selectedFormat,
+                                        quality = exportQuality.toInt(),
+                                        keepLossless = preserveLossless,
                                         removeAllMetadata = removeAllMetadata,
                                         removeLocation = removeLocationData,
                                         removeDevice = removeDeviceInfo,
@@ -160,23 +198,42 @@ fun ImageMetadataEditorScreen(navController: NavController, viewModel: MainViewM
                                         newModel = modelInput
                                     )
                                     withContext(Dispatchers.Main) {
-                                        if (resultUri != null) {
-                                            savedResultUri = resultUri
-                                            Toast.makeText(context, "Saved successfully as edited copy!", Toast.LENGTH_LONG).show()
+                                        isSaving = false
+                                        if (result != null) {
+                                            saveResult = result
+                                            snackbarHostState.showSnackbar(
+                                                message = "Saved to Gallery! (${result.displayName})",
+                                                duration = SnackbarDuration.Short
+                                            )
                                         } else {
-                                            Toast.makeText(context, "Failed to save edited image.", Toast.LENGTH_SHORT).show()
+                                            snackbarHostState.showSnackbar(
+                                                message = "Failed to save image to Gallery.",
+                                                duration = SnackbarDuration.Short
+                                            )
                                         }
                                     }
                                 }
                             },
-                            modifier = Modifier.weight(1.3f),
+                            modifier = Modifier.weight(1.5f),
+                            shape = RoundedCornerShape(14.dp),
+                            enabled = !isSaving,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary
                             )
                         ) {
-                            Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Save As")
+                            if (isSaving) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Saving...")
+                            } else {
+                                Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Save As", fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
@@ -192,8 +249,8 @@ fun ImageMetadataEditorScreen(navController: NavController, viewModel: MainViewM
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // 1) Top Hero Section
                 HeroSection()
@@ -215,11 +272,11 @@ fun ImageMetadataEditorScreen(navController: NavController, viewModel: MainViewM
                         )
                     })
                 } else {
-                    // 2) Selected Image Preview Card
+                    // 2) Selected Image Preview Card with Metadata Chips
                     SelectedImagePreviewCard(
                         bitmap = bitmap,
                         metadata = metadata,
-                        imageUri = selectedImageUri!!,
+                        fileName = originalFileName,
                         onChangeImageClick = {
                             imagePickerLauncher.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -227,13 +284,25 @@ fun ImageMetadataEditorScreen(navController: NavController, viewModel: MainViewM
                         }
                     )
 
-                    // 3) Metadata Actions Card (Keep Quality)
-                    MetadataActionCard(
-                        keepQuality = keepQuality,
-                        onKeepQualityChanged = { keepQuality = it }
+                    // 3) Export Destination & Filename Card
+                    ExportDestinationCard(
+                        fileName = customFileName,
+                        onFileNameChange = { customFileName = it },
+                        subFolder = subFolderName,
+                        onSubFolderChange = { subFolderName = it }
                     )
 
-                    // 4) Date & Time Editor Card
+                    // 4) Export Format & Quality Card
+                    ExportFormatAndQualityCard(
+                        selectedFormat = selectedFormat,
+                        onFormatSelected = { selectedFormat = it },
+                        exportQuality = exportQuality,
+                        onQualityChange = { exportQuality = it },
+                        preserveLossless = preserveLossless,
+                        onPreserveLosslessChange = { preserveLossless = it }
+                    )
+
+                    // 5) Date & Time Editor Card
                     DateTimeEditorCard(
                         dateTimeInput = dateTimeInput,
                         onDateTimeChanged = { dateTimeInput = it },
@@ -241,10 +310,11 @@ fun ImageMetadataEditorScreen(navController: NavController, viewModel: MainViewM
                         onCurrentTimeClick = {
                             val currentTime = SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.getDefault()).format(Date())
                             dateTimeInput = currentTime
-                        }
+                        },
+                        onClearClick = { dateTimeInput = "" }
                     )
 
-                    // 5) Device Info Editor Card
+                    // 6) Device Info Editor Card
                     DeviceInfoEditorCard(
                         makeInput = makeInput,
                         onMakeChanged = { makeInput = it },
@@ -253,66 +323,37 @@ fun ImageMetadataEditorScreen(navController: NavController, viewModel: MainViewM
                         enabled = !removeAllMetadata && !removeDeviceInfo
                     )
 
-                    // 6) Remove Location Data card
+                    // 7) Remove Location Data card (GPS Geotags)
                     RemoveLocationDataCard(
                         removeLocation = removeLocationData,
                         onRemoveLocationChanged = { removeLocationData = it },
+                        hasGps = metadata?.hasGps == true,
                         enabled = !removeAllMetadata
                     )
 
-                    // 7) Remove Device Info card
+                    // 8) Remove Device Info card
                     RemoveDeviceInfoCard(
                         removeDevice = removeDeviceInfo,
                         onRemoveDeviceChanged = { removeDeviceInfo = it },
                         enabled = !removeAllMetadata
                     )
 
-                    // 8) Remove All Metadata card
+                    // 9) Remove All Metadata card
                     RemoveAllMetadataCard(
                         removeAll = removeAllMetadata,
                         onRemoveAllChanged = { removeAllMetadata = it }
                     )
 
-                    if (savedResultUri != null) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .background(MaterialTheme.colorScheme.primary, CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
-                                }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "Edited Image Saved Successfully!",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        text = "Saved at: ${savedResultUri?.lastPathSegment ?: "Internal Storage"}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
+                    // 10) Saved Result Success Card
+                    if (saveResult != null) {
+                        SavedSuccessCard(
+                            saveResult = saveResult!!,
+                            onOpenGallery = { ExifEditorUtils.openInGallery(context, saveResult!!.uri) },
+                            onShare = { ExifEditorUtils.shareImage(context, saveResult!!.uri, saveResult!!.mimeType) }
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(80.dp)) // Bottom padding for sticky bar
+                    Spacer(modifier = Modifier.height(60.dp))
                 }
             }
         }
@@ -320,6 +361,11 @@ fun ImageMetadataEditorScreen(navController: NavController, viewModel: MainViewM
 
     if (showPreviewDialog) {
         PreviewChangesDialog(
+            originalFileName = originalFileName,
+            customFileName = customFileName,
+            subFolder = subFolderName,
+            format = selectedFormat,
+            quality = exportQuality.toInt(),
             removeAllMetadata = removeAllMetadata,
             removeLocationData = removeLocationData,
             removeDeviceInfo = removeDeviceInfo,
@@ -336,23 +382,23 @@ fun ImageMetadataEditorScreen(navController: NavController, viewModel: MainViewM
 fun HeroSection() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(18.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
@@ -367,7 +413,7 @@ fun HeroSection() {
                     Icons.Default.Tune,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(26.dp)
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
@@ -379,7 +425,7 @@ fun HeroSection() {
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Remove EXIF data, edit date, and update device info securely.",
+                    text = "Clean EXIF tags, edit date/device, and save directly to Gallery.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -392,32 +438,33 @@ fun HeroSection() {
 fun EmptyStateCard(onSelectClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(32.dp),
+                .padding(28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(80.dp)
+                    .size(76.dp)
                     .background(
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
                         CircleShape
-                    ),
+                    )
+                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Outlined.AddPhotoAlternate,
                     contentDescription = null,
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(38.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
@@ -428,7 +475,7 @@ fun EmptyStateCard(onSelectClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "Select an image from your gallery to view and edit its EXIF metadata, camera make, model, and capture timestamp.",
+                text = "Choose an image from your device to view its EXIF metadata, edit camera details, strip GPS coordinates, and export straight to your Gallery.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -447,20 +494,21 @@ fun EmptyStateCard(onSelectClick: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SelectedImagePreviewCard(
     bitmap: Bitmap?,
     metadata: ExifMetadata?,
-    imageUri: Uri,
+    fileName: String,
     onChangeImageClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(
             modifier = Modifier
@@ -476,9 +524,10 @@ fun SelectedImagePreviewCard(
                 if (bitmap != null) {
                     Box(
                         modifier = Modifier
-                            .size(88.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surface),
+                            .size(92.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(MaterialTheme.colorScheme.surface)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
@@ -490,9 +539,10 @@ fun SelectedImagePreviewCard(
                 } else {
                     Box(
                         modifier = Modifier
-                            .size(88.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.primaryContainer),
+                            .size(92.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(Icons.Default.Image, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
@@ -501,33 +551,70 @@ fun SelectedImagePreviewCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = imageUri.lastPathSegment ?: "Selected Image",
+                        text = fileName.ifBlank { "Selected Image" },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "Dimensions: ${metadata?.width ?: "?"} × ${metadata?.height ?: "?"} px",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        if (!metadata?.make.isNullOrBlank() || !metadata?.model.isNullOrBlank()) {
-                            AssistChip(
-                                onClick = {},
-                                label = { Text("EXIF Present", style = MaterialTheme.typography.labelSmall) },
-                                leadingIcon = { Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                            )
-                        } else {
-                            AssistChip(
-                                onClick = {},
-                                label = { Text("No EXIF", style = MaterialTheme.typography.labelSmall) }
-                            )
-                        }
+                    if (!metadata?.dateTimeOriginal.isNullOrBlank()) {
+                        Text(
+                            text = "Date: ${metadata?.dateTimeOriginal}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
+                }
+            }
+
+            // Summary Chips Flow
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // EXIF Status Chip
+                val hasExif = !metadata?.make.isNullOrBlank() || !metadata?.model.isNullOrBlank() || !metadata?.dateTimeOriginal.isNullOrBlank()
+                AssistChip(
+                    onClick = {},
+                    label = { Text(if (hasExif) "EXIF Found" else "No EXIF", style = MaterialTheme.typography.labelSmall) },
+                    leadingIcon = {
+                        Icon(
+                            if (hasExif) Icons.Default.CheckCircle else Icons.Default.Info,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = if (hasExif) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                )
+
+                // GPS Status Chip
+                AssistChip(
+                    onClick = {},
+                    label = { Text(if (metadata?.hasGps == true) "📍 GPS Geotagged" else "No GPS", style = MaterialTheme.typography.labelSmall) }
+                )
+
+                // Device Chip
+                if (!metadata?.make.isNullOrBlank() || !metadata?.model.isNullOrBlank()) {
+                    AssistChip(
+                        onClick = {},
+                        label = {
+                            Text(
+                                text = "${metadata?.make ?: ""} ${metadata?.model ?: ""}".trim(),
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1
+                            )
+                        },
+                        leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                    )
                 }
             }
 
@@ -545,219 +632,207 @@ fun SelectedImagePreviewCard(
 }
 
 @Composable
-fun MetadataActionCard(
-    keepQuality: Boolean,
-    onKeepQualityChanged: (Boolean) -> Unit
+fun ExportDestinationCard(
+    fileName: String,
+    onFileNameChange: (String) -> Unit,
+    subFolder: String,
+    onSubFolderChange: (String) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text(
-                text = "Export Settings",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Text(
+                    text = "Gallery Save Location & Filename",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            // Public gallery folder location notice
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        Icons.Default.PhotoLibrary,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Save to Public Gallery (Pictures)",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Pictures/Arw Hyper Toolkit/${subFolder.ifBlank { "Image Metadata Editor" }}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            OutlinedTextField(
+                value = fileName,
+                onValueChange = onFileNameChange,
+                label = { Text("Output Filename") },
+                placeholder = { Text("e.g. edited_photo.jpg") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(14.dp),
+                leadingIcon = { Icon(Icons.Default.DriveFileRenameOutline, contentDescription = null) }
             )
 
-            // Keep Image Quality Toggle
-            Row(
+            OutlinedTextField(
+                value = subFolder,
+                onValueChange = onSubFolderChange,
+                label = { Text("Album Subfolder") },
+                placeholder = { Text("Image Metadata Editor") },
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Preserve Original Quality", fontWeight = FontWeight.SemiBold)
-                    Text(
-                        text = "Save edited copy without compression loss",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Switch(
-                    checked = keepQuality,
-                    onCheckedChange = onKeepQualityChanged
-                )
-            }
+                singleLine = true,
+                shape = RoundedCornerShape(14.dp),
+                leadingIcon = { Icon(Icons.Default.CreateNewFolder, contentDescription = null) }
+            )
         }
     }
 }
 
 @Composable
-fun RemoveLocationDataCard(
-    removeLocation: Boolean,
-    onRemoveLocationChanged: (Boolean) -> Unit,
-    enabled: Boolean
+fun ExportFormatAndQualityCard(
+    selectedFormat: ExportFormat,
+    onFormatSelected: (ExportFormat) -> Unit,
+    exportQuality: Float,
+    onQualityChange: (Float) -> Unit,
+    preserveLossless: Boolean,
+    onPreserveLosslessChange: (Boolean) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Remove Location Data",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Strip GPS / Geo Tags",
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "Removes real location information from photo metadata",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Switch(
-                    checked = removeLocation,
-                    onCheckedChange = onRemoveLocationChanged,
-                    enabled = enabled
-                )
-            }
-
-            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.HighQuality, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Text(
-                    text = "Visible content in the image will not change",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "Export Format & Quality",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
-        }
-    }
-}
 
-@Composable
-fun RemoveDeviceInfoCard(
-    removeDevice: Boolean,
-    onRemoveDeviceChanged: (Boolean) -> Unit,
-    enabled: Boolean
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+            Text(
+                text = "Export format",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // Format Selection Chips
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Remove Device Info",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Strip Make / Model",
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "Removes camera or device information stored in metadata",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                ExportFormat.values().forEach { fmt ->
+                    FilterChip(
+                        selected = selectedFormat == fmt,
+                        onClick = { onFormatSelected(fmt) },
+                        label = {
+                            Text(
+                                text = when (fmt) {
+                                    ExportFormat.ORIGINAL -> "Original"
+                                    ExportFormat.JPEG -> "JPEG"
+                                    ExportFormat.PNG -> "PNG"
+                                    ExportFormat.WEBP -> "WebP"
+                                },
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        },
+                        modifier = Modifier.weight(1f)
                     )
                 }
-                Switch(
-                    checked = removeDevice,
-                    onCheckedChange = onRemoveDeviceChanged,
-                    enabled = enabled
-                )
             }
-        }
-    }
-}
 
-@Composable
-fun RemoveAllMetadataCard(
-    removeAll: Boolean,
-    onRemoveAllChanged: (Boolean) -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Remove All Metadata",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Strips EXIF, GPS, device info, and other embedded metadata",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+            if (selectedFormat == ExportFormat.ORIGINAL || selectedFormat == ExportFormat.JPEG) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = "Preserve Original Quality", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            text = "Save without recompression loss",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = preserveLossless,
+                        onCheckedChange = onPreserveLosslessChange
                     )
                 }
-                Switch(
-                    checked = removeAll,
-                    onCheckedChange = onRemoveAllChanged,
-                    colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary)
-                )
+            }
+
+            if (!preserveLossless || (selectedFormat != ExportFormat.ORIGINAL && selectedFormat != ExportFormat.PNG)) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Image quality",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "${exportQuality.toInt()}%",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Slider(
+                        value = exportQuality,
+                        onValueChange = onQualityChange,
+                        valueRange = 10f..100f,
+                        steps = 18
+                    )
+                }
             }
         }
     }
@@ -768,20 +843,21 @@ fun DateTimeEditorCard(
     dateTimeInput: String,
     onDateTimeChanged: (String) -> Unit,
     enabled: Boolean,
-    onCurrentTimeClick: () -> Unit
+    onCurrentTimeClick: () -> Unit,
+    onClearClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
@@ -796,10 +872,15 @@ fun DateTimeEditorCard(
                     color = MaterialTheme.colorScheme.primary
                 )
                 if (enabled) {
-                    TextButton(onClick = onCurrentTimeClick) {
-                        Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Use Now")
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        TextButton(onClick = onClearClick) {
+                            Text("Clear")
+                        }
+                        TextButton(onClick = onCurrentTimeClick) {
+                            Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Use Now")
+                        }
                     }
                 }
             }
@@ -835,16 +916,16 @@ fun DeviceInfoEditorCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
@@ -888,7 +969,248 @@ fun DeviceInfoEditorCard(
 }
 
 @Composable
+fun RemoveLocationDataCard(
+    removeLocation: Boolean,
+    onRemoveLocationChanged: (Boolean) -> Unit,
+    hasGps: Boolean,
+    enabled: Boolean
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Remove Location Data",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = if (hasGps) "📍 GPS geotags detected in image" else "Strip GPS / Geo Tags",
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Removes coordinates and location tags from photo metadata",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = removeLocation,
+                    onCheckedChange = onRemoveLocationChanged,
+                    enabled = enabled
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RemoveDeviceInfoCard(
+    removeDevice: Boolean,
+    onRemoveDeviceChanged: (Boolean) -> Unit,
+    enabled: Boolean
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Remove Device Info",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Strip Make / Model",
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Removes camera or device info from metadata",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = removeDevice,
+                    onCheckedChange = onRemoveDeviceChanged,
+                    enabled = enabled
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RemoveAllMetadataCard(
+    removeAll: Boolean,
+    onRemoveAllChanged: (Boolean) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Remove All Metadata",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Strips EXIF, GPS, device info, and timestamps",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = removeAll,
+                    onCheckedChange = onRemoveAllChanged,
+                    colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SavedSuccessCard(
+    saveResult: SaveResult,
+    onOpenGallery: () -> Unit,
+    onShare: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Saved to Gallery!",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = saveResult.relativePath,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(
+                    onClick = onOpenGallery,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Open in Gallery")
+                }
+
+                OutlinedButton(
+                    onClick = onShare,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Share")
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun PreviewChangesDialog(
+    originalFileName: String,
+    customFileName: String,
+    subFolder: String,
+    format: ExportFormat,
+    quality: Int,
     removeAllMetadata: Boolean,
     removeLocationData: Boolean,
     removeDeviceInfo: Boolean,
@@ -903,48 +1225,71 @@ fun PreviewChangesDialog(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Default.Visibility, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                Text("Metadata Changes Preview")
+                Text("Export & Metadata Preview")
             }
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 Text(
                     text = when {
                         removeAllMetadata -> "• All metadata will be stripped"
-                        removeLocationData && removeDeviceInfo -> "• GPS location data will be removed\n• Device info will be removed"
-                        removeLocationData -> "• GPS location data will be removed"
-                        removeDeviceInfo -> "• Device info will be removed"
-                        else -> "• Custom EXIF updates applied"
+                        removeLocationData && removeDeviceInfo -> "• GPS location & Device info will be stripped"
+                        removeLocationData -> "• GPS location data will be stripped"
+                        removeDeviceInfo -> "• Device make and model will be stripped"
+                        else -> "• Custom EXIF metadata changes applied"
                     },
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
-                Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                Text(
+                    text = "📁 Destination: Pictures/Arw Hyper Toolkit/${subFolder.ifBlank { "Image Metadata Editor" }}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "📄 Filename: $customFileName",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "🎨 Format: ${format.displayName} (${quality}% Quality)",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                 if (removeAllMetadata) {
-                    Text("• All EXIF metadata, GPS geotags, make, model, and timestamps will be completely wiped.")
+                    Text("• All EXIF metadata, GPS geotags, make, model, and timestamps will be completely removed.")
                 } else {
                     if (removeLocationData) {
-                        Text("• GPS coordinates and location tags will be removed.")
+                        Text("• GPS coordinates: (Removed)")
+                    } else if (metadata?.hasGps == true) {
+                        Text("• GPS coordinates: Preserved (${metadata.latitude}, ${metadata.longitude})")
                     }
+
                     if (removeDeviceInfo) {
-                        Text("• Device make and model tags will be removed.")
+                        Text("• Camera Make/Model: (Removed)")
                     } else {
-                        Text("• Make: ${metadata?.make ?: "None"} -> ${if (makeInput.isBlank()) "(Cleared)" else makeInput}")
-                        Text("• Model: ${metadata?.model ?: "None"} -> ${if (modelInput.isBlank()) "(Cleared)" else modelInput}")
+                        Text("• Make: ${metadata?.make ?: "None"} ➔ ${if (makeInput.isBlank()) "(Cleared)" else makeInput}")
+                        Text("• Model: ${metadata?.model ?: "None"} ➔ ${if (modelInput.isBlank()) "(Cleared)" else modelInput}")
                     }
-                    Text("• Date/Time: ${metadata?.dateTimeOriginal ?: "None"} -> ${if (dateTimeInput.isBlank()) "(Cleared)" else dateTimeInput}")
+                    Text("• Date/Time: ${metadata?.dateTimeOriginal ?: "None"} ➔ ${if (dateTimeInput.isBlank()) "(Cleared)" else dateTimeInput}")
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("🛡️ Non-Destructive Guarantee", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
                         Text(
-                            "Original image will stay unchanged. Changes are saved to a new file copy.",
+                            "Original image will stay unchanged. Changes are saved to a new file in your public Gallery.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -957,6 +1302,6 @@ fun PreviewChangesDialog(
                 Text("Got It")
             }
         },
-        shape = RoundedCornerShape(24.dp)
+        shape = RoundedCornerShape(20.dp)
     )
 }

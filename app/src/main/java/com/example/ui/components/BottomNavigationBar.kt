@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -67,8 +68,9 @@ fun CustomBottomNavigationBar(
             .padding(horizontal = 14.dp, vertical = 18.dp)
             .fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        color = if (isDarkTheme) Color(0xFF16161E) else Color(0xFFFFFFFF),
-        shadowElevation = if (isDarkTheme) 0.dp else 4.dp
+        color = if (isDarkTheme) Color(0xFF16161E) else MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shadowElevation = if (isDarkTheme) 0.dp else 3.dp
     ) {
         Row(
             modifier = Modifier
@@ -78,6 +80,14 @@ fun CustomBottomNavigationBar(
         ) {
             bottomNavItems.forEach { item ->
                 val isSelected = currentDestination?.hierarchy?.any { it.route == item.route } == true
+                val selectedPillColor = if (isDarkTheme) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                } else {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                }
+                val selectedTintColor = MaterialTheme.colorScheme.primary
+                val unselectedTintColor = MaterialTheme.colorScheme.onSurfaceVariant
+
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -92,9 +102,9 @@ fun CustomBottomNavigationBar(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(width = 42.dp, height = 26.dp)
+                            .size(width = 44.dp, height = 28.dp)
                             .background(
-                                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent,
+                                if (isSelected) selectedPillColor else Color.Transparent,
                                 RoundedCornerShape(percent = 50)
                             ),
                         contentAlignment = Alignment.Center
@@ -103,14 +113,14 @@ fun CustomBottomNavigationBar(
                             imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
                             contentDescription = item.title,
                             modifier = Modifier.size(20.dp),
-                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            tint = if (isSelected) selectedTintColor else unselectedTintColor
                         )
                     }
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(3.dp))
                     Text(
                         text = item.title,
-                        fontSize = 9.sp,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        fontSize = 10.sp,
+                        color = if (isSelected) selectedTintColor else unselectedTintColor,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                         maxLines = 1
                     )

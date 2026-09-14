@@ -22,7 +22,7 @@ class GreetingScreenshotTest {
 
   @Test
   fun theme_screenshot() {
-    composeTestRule.setContent { NameGenProTheme { Text("NameGen Pro") } }
+    composeTestRule.setContent { NameGenProTheme { Text("Arw Hyper Toolkit") } }
 
     composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/namegen.png")
   }

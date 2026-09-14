@@ -85,7 +85,8 @@ fun MainAppScreen(viewModel: MainViewModel) {
 
                 if (showBottomBar) {
                     val darkModeState by viewModel.darkMode.collectAsStateWithLifecycle()
-                    val isDarkTheme = darkModeState ?: isSystemInDarkTheme()
+                    val whiteThemeState by viewModel.whiteTheme.collectAsStateWithLifecycle()
+                    val isDarkTheme = (darkModeState ?: isSystemInDarkTheme()) && !whiteThemeState
                     CustomBottomNavigationBar(
                         navController = navController,
                         currentDestination = currentDestination,
@@ -154,18 +155,9 @@ fun NameGenNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Splash.route,
+        startDestination = Screen.Home.route,
         modifier = modifier
     ) {
-        composable(Screen.Splash.route) {
-            SplashScreen(
-                onSplashFinished = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Splash.route) { inclusive = true }
-                    }
-                }
-            )
-        }
         composable(Screen.Home.route) {
             HomeScreen(navController = navController, viewModel = viewModel)
         }

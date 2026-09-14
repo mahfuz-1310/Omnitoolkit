@@ -198,7 +198,12 @@ fun ModuleScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                         Icon(Icons.Default.Code, contentDescription = "Custom Script Editor")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                    actionIconContentColor = MaterialTheme.colorScheme.onBackground
+                )
             )
         }
     ) { padding ->
@@ -230,15 +235,15 @@ fun ModuleScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(20.dp),
+                            shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = Color(0xFF1E1E2E)
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
                             ),
-                            border = BorderStroke(1.dp, Color(0xFF2E2E42))
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                         ) {
                             Column(
                                 modifier = Modifier.padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 val isShizukuConnected = remember { CustomModuleManager.isShizukuReady() }
                                 Row(
@@ -246,23 +251,39 @@ fun ModuleScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.SportsEsports,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(28.dp)
-                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                                        modifier = Modifier.size(44.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Default.SportsEsports,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+                                    }
                                     Text(
                                         text = "All-in-One Game Engine",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.White
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
+
+                                HorizontalDivider(
+                                    thickness = 1.dp,
+                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                                    modifier = Modifier.padding(vertical = 2.dp)
+                                )
+
                                 Text(
                                     text = "Turbocharge gaming performance, unlock 120Hz FPS, stabilize ping, spoof device profiles, and cool down CPU via Shizuku or Root.",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = Color(0xFFA1A1AA)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 if (!isShizukuConnected) {
                                     Text(
@@ -272,17 +293,32 @@ fun ModuleScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                                     )
                                 }
 
+                                HorizontalDivider(
+                                    thickness = 1.dp,
+                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                                    modifier = Modifier.padding(vertical = 2.dp)
+                                )
+
                                 // Shizuku Status Badge at the bottom of the header card
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(top = 4.dp),
+                                        .padding(top = 2.dp),
                                     horizontalArrangement = Arrangement.End,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Surface(
                                         shape = RoundedCornerShape(16.dp),
-                                        color = if (isShizukuConnected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.errorContainer
+                                        color = if (isShizukuConnected) {
+                                            Color(0xFF10B981).copy(alpha = 0.12f)
+                                        } else {
+                                            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f)
+                                        },
+                                        border = BorderStroke(
+                                            1.dp,
+                                            if (isShizukuConnected) Color(0xFF10B981).copy(alpha = 0.5f)
+                                            else MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
+                                        )
                                     ) {
                                         Row(
                                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
@@ -293,7 +329,7 @@ fun ModuleScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                                                 modifier = Modifier
                                                     .size(8.dp)
                                                     .background(
-                                                        color = if (isShizukuConnected) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error,
+                                                        color = if (isShizukuConnected) Color(0xFF10B981) else MaterialTheme.colorScheme.error,
                                                         shape = RoundedCornerShape(4.dp)
                                                     )
                                             )
@@ -303,7 +339,11 @@ fun ModuleScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                                                 fontWeight = FontWeight.Bold,
                                                 maxLines = 1,
                                                 softWrap = false,
-                                                color = if (isShizukuConnected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+                                                color = if (isShizukuConnected) {
+                                                    Color(0xFF10B981)
+                                                } else {
+                                                    MaterialTheme.colorScheme.error
+                                                }
                                             )
                                         }
                                     }
@@ -312,15 +352,24 @@ fun ModuleScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                         }
                     }
 
+                    // Divider under Header Banner Card
+                    item {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 2.dp),
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+                        )
+                    }
+
                     // Thermal Status Card
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = Color(0xFF1E1E2E)
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
                             ),
-                            border = BorderStroke(1.dp, Color(0xFF2E2E42))
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -336,14 +385,15 @@ fun ModuleScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                                 ) {
                                     Surface(
                                         shape = RoundedCornerShape(12.dp),
-                                        color = Color(0xFF4CAF50).copy(alpha = 0.15f),
+                                        color = Color(0xFF10B981).copy(alpha = 0.12f),
+                                        border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.35f)),
                                         modifier = Modifier.size(44.dp)
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
                                             Icon(
                                                 imageVector = Icons.Default.Thermostat,
                                                 contentDescription = null,
-                                                tint = Color(0xFF4CAF50),
+                                                tint = Color(0xFF10B981),
                                                 modifier = Modifier.size(24.dp)
                                             )
                                         }
@@ -353,19 +403,19 @@ fun ModuleScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                                             text = "CPU Thermal Status",
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color.White,
+                                            color = MaterialTheme.colorScheme.onSurface,
                                             maxLines = 1
                                         )
                                         Text(
                                             text = "35.8°C • Optimal (Gaming Ready)",
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = Color(0xFFA1A1AA),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1
                                         )
                                     }
                                 }
 
-                                FilledTonalButton(
+                                Button(
                                     onClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         SoundEffectManager.playClick()
@@ -379,6 +429,10 @@ fun ModuleScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                                         }
                                     },
                                     shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                    ),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                                 ) {
                                     Row(
@@ -388,7 +442,8 @@ fun ModuleScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                                         Icon(
                                             imageVector = Icons.Default.AcUnit,
                                             contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.onPrimary
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
@@ -396,7 +451,8 @@ fun ModuleScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = FontWeight.SemiBold,
                                             maxLines = 1,
-                                            softWrap = false
+                                            softWrap = false,
+                                            color = MaterialTheme.colorScheme.onPrimary
                                         )
                                     }
                                 }
@@ -404,33 +460,54 @@ fun ModuleScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                         }
                     }
 
+                    // Section Divider
+                    item {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 2.dp),
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+                        )
+                    }
+
                     // Modules Section Header
                     item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "Game Booster & System Modules (${allModules.size})",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.weight(1f)
-                            )
-                            OutlinedButton(
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    SoundEffectManager.playClick()
-                                    filePickerLauncher.launch(arrayOf("*/*"))
-                                },
-                                shape = RoundedCornerShape(12.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("+ Import Module", style = MaterialTheme.typography.labelMedium)
+                                Text(
+                                    text = "Game Booster & System Modules (${allModules.size})",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                OutlinedButton(
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        SoundEffectManager.playClick()
+                                        filePickerLauncher.launch(arrayOf("*/*"))
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.surface,
+                                        contentColor = MaterialTheme.colorScheme.primary
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("+ Import Module", style = MaterialTheme.typography.labelMedium)
+                                }
                             }
+                            HorizontalDivider(
+                                modifier = Modifier.padding(top = 10.dp, bottom = 2.dp),
+                                thickness = 1.dp,
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                            )
                         }
                     }
 
@@ -521,7 +598,11 @@ fun ModuleScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                                 viewModel.showFloatingToast(msg)
                             }
                         }
-                    }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 ) {
                     Text("Execute Script")
                 }
@@ -540,11 +621,9 @@ fun ModuleScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
 }
 
 /**
- * FilledModuleCard provides a solid dark container box design across all modules:
- * - When Enabled/Active: The container background stays permanently dark (Color(0xFF1E1E2E)),
- *   with an active green switch, a clear green "ACTIVE" status badge, and crisp typography.
- * - When Disabled/Inactive: The container background stays permanently dark (Color(0xFF1E1E2E)),
- *   with unchecked switch state and standard category badge.
+ * FilledModuleCard provides a theme-aware container box design across all modules:
+ * - Adapts cleanly to both White theme and Dark theme using MaterialTheme semantic colors.
+ * - Active state highlights with emerald green accent, clear ACTIVE badge, and crisp typography.
  */
 @Composable
 fun FilledModuleCard(
@@ -554,18 +633,22 @@ fun FilledModuleCard(
     onRunNow: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val cardBg = if (module.isCustom) Color(0xFF252136) else Color(0xFF1E1E2E)
-    val cardBorder = if (isEnabled) {
-        BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f))
+    val cardBg = if (module.isCustom) {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
     } else {
-        BorderStroke(1.dp, Color(0xFF2E2E42))
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+    }
+    val cardBorder = if (isEnabled) {
+        BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.8f))
+    } else {
+        BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     }
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
             containerColor = cardBg
         ),
@@ -591,12 +674,18 @@ fun FilledModuleCard(
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = if (isEnabled) {
-                            Color(0xFF10B981).copy(alpha = 0.15f)
+                            Color(0xFF10B981).copy(alpha = 0.12f)
                         } else if (module.isCustom) {
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
+                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
                         } else {
-                            Color(0xFF2D2D3F)
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         },
+                        border = BorderStroke(
+                            1.dp,
+                            if (isEnabled) Color(0xFF10B981).copy(alpha = 0.4f)
+                            else if (module.isCustom) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f)
+                            else MaterialTheme.colorScheme.outline
+                        ),
                         modifier = Modifier.size(42.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
@@ -617,7 +706,7 @@ fun FilledModuleCard(
                                 } else if (module.isCustom) {
                                     MaterialTheme.colorScheme.tertiary
                                 } else {
-                                    MaterialTheme.colorScheme.primary
+                                    MaterialTheme.colorScheme.onSurfaceVariant
                                 },
                                 modifier = Modifier.size(24.dp)
                             )
@@ -628,7 +717,7 @@ fun FilledModuleCard(
                             text = module.title,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -637,10 +726,15 @@ fun FilledModuleCard(
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
                                 color = if (module.isCustom) {
-                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
                                 } else {
-                                    Color(0xFF2D2D3F)
-                                }
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                                },
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (module.isCustom) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.35f)
+                                    else MaterialTheme.colorScheme.outline
+                                )
                             ) {
                                 Text(
                                     text = if (module.isCustom) "Custom Script" else module.category,
@@ -649,7 +743,7 @@ fun FilledModuleCard(
                                     color = if (module.isCustom) {
                                         MaterialTheme.colorScheme.tertiary
                                     } else {
-                                        MaterialTheme.colorScheme.primary
+                                        MaterialTheme.colorScheme.onSurfaceVariant
                                     },
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
@@ -657,7 +751,7 @@ fun FilledModuleCard(
                             if (isEnabled) {
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
-                                    color = Color(0xFF059669).copy(alpha = 0.2f),
+                                    color = Color(0xFF10B981).copy(alpha = 0.12f),
                                     border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.5f))
                                 ) {
                                     Row(
@@ -690,43 +784,58 @@ fun FilledModuleCard(
                         checkedThumbColor = Color.White,
                         checkedTrackColor = Color(0xFF059669),
                         checkedBorderColor = Color(0xFF10B981),
-                        uncheckedThumbColor = Color(0xFF9E9E9E),
-                        uncheckedTrackColor = Color(0xFF2D2D3F),
-                        uncheckedBorderColor = Color(0xFF424254)
+                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        uncheckedBorderColor = MaterialTheme.colorScheme.outline
                     )
                 )
             }
 
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                modifier = Modifier.padding(vertical = 1.dp)
+            )
+
             Text(
                 text = module.description,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFFA1A1AA)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            // Apply / Run button
-            Button(
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                modifier = Modifier.padding(vertical = 1.dp)
+            )
+
+            // Outlined Action Button
+            OutlinedButton(
                 onClick = onRunNow,
                 modifier = Modifier.align(Alignment.End),
                 shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF2D2D3F),
-                    contentColor = Color.White
+                border = BorderStroke(
+                    1.dp,
+                    if (isEnabled) Color(0xFF10B981).copy(alpha = 0.6f) else MaterialTheme.colorScheme.outline
                 ),
-                border = BorderStroke(1.dp, Color(0xFF3E3E52)),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = if (isEnabled) Color(0xFF10B981).copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface,
+                    contentColor = if (isEnabled) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurface
+                ),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Icon(
                     Icons.Default.PlayArrow,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
-                    tint = if (isEnabled) Color(0xFF10B981) else Color.White
+                    tint = if (isEnabled) Color(0xFF10B981) else MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "Run Module Now",
                     style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isEnabled) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurface
                 )
             }
         }

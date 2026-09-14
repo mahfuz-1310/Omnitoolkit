@@ -69,11 +69,12 @@ fun CustomIconPickerWidget(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             // Header
@@ -153,7 +154,7 @@ fun CustomIconPickerWidget(
                             colors = CardDefaults.cardColors(containerColor = animatedCardBg),
                             border = BorderStroke(
                                 width = animatedBorderWidth,
-                                color = if (isSelected) accentColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                                color = if (isSelected) accentColor else MaterialTheme.colorScheme.outline
                             )
                         ) {
                             Column(

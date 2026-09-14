@@ -85,6 +85,39 @@ object FakeGpsManager {
     }
 
     /**
+     * Checks if the app is currently allowed to add test providers (i.e. selected as Mock Location App).
+     */
+    fun isMockLocationAppAllowed(context: Context): Boolean {
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return false
+        val testProvider = "gps_mock_test_probe"
+        return try {
+            try { locationManager.removeTestProvider(testProvider) } catch (_: Exception) {}
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                locationManager.addTestProvider(
+                    testProvider,
+                    false, false, false, false, false, false, false,
+                    android.location.provider.ProviderProperties.POWER_USAGE_LOW,
+                    android.location.provider.ProviderProperties.ACCURACY_FINE
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                locationManager.addTestProvider(
+                    testProvider,
+                    false, false, false, false, false, false, false,
+                    Criteria.POWER_LOW,
+                    Criteria.ACCURACY_FINE
+                )
+            }
+            try { locationManager.removeTestProvider(testProvider) } catch (_: Exception) {}
+            true
+        } catch (e: SecurityException) {
+            false
+        } catch (e: Exception) {
+            true
+        }
+    }
+
+    /**
      * Attempts to start injecting mock locations.
      * Returns true if successfully started, false if SecurityException / not mock app.
      */
@@ -137,12 +170,12 @@ object FakeGpsManager {
                 }
                 locationManager.setTestProviderEnabled(provider, true)
             } catch (e: SecurityException) {
-                Log.e(TAG, "SecurityException while adding test provider: ${e.message}")
-                _lastError.value = "Mock Location permission required in Developer Options!"
+                Log.w(TAG, "SecurityException: App is not selected as Mock Location app in Developer Options: ${e.message}")
+                _lastError.value = "Please select this app under 'Select mock location app' in Developer Options"
                 _isMockingActive.value = false
                 return false
             } catch (e: Exception) {
-                Log.e(TAG, "Error initializing test provider $provider: ${e.message}")
+                Log.w(TAG, "Warning initializing test provider $provider: ${e.message}")
             }
         }
 

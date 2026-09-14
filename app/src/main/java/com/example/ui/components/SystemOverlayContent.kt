@@ -279,7 +279,7 @@ fun SystemOverlayContent(
                         }
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            "NameGen Studio",
+                            com.example.utils.AppConstants.APP_NAME,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1
@@ -511,7 +511,7 @@ fun SystemOverlayContent(
                             }
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                "NameGen Studio",
+                                com.example.utils.AppConstants.APP_NAME,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.ExtraBold
                             )
