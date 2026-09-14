@@ -26,10 +26,10 @@ object IconManager {
     // Complete list of registered activity-aliases in AndroidManifest.xml
     val variants = listOf(
         IconVariant(
-            name = "Default Blue",
+            name = "Official Hyper",
             alias = ".DefaultBlue",
-            description = "Standard clean blue theme",
-            drawableResId = R.drawable.omnikit_logo_1789391961077,
+            description = "Official Hyper Toolkit logo",
+            drawableResId = R.drawable.hyper_toolkit_logo_1789410452090,
             isDefault = true
         ),
         IconVariant(

@@ -59,6 +59,9 @@ import com.example.service.MockLocationService
 import com.example.ui.AppManagerViewModel
 import com.example.ui.navigation.Screen
 import com.example.ui.components.FakeDeviceDialog
+import com.example.feature.system.shell.ShellCommandCard
+import com.example.feature.system.shell.ShellCommandViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.utils.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,6 +77,7 @@ fun SystemDashboardScreen(
 
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
+    val shellViewModel: ShellCommandViewModel = viewModel()
 
     // Expanded section states
     var isDnsExpanded by remember { mutableStateOf(false) }
@@ -129,6 +133,7 @@ fun SystemDashboardScreen(
                     hasShizukuPerm = shizukuP
                     currentPresetName = preset
                     currentSpoof = spoof
+                    shellViewModel.refreshStatus()
                 }
             }
         }
@@ -947,7 +952,12 @@ fun SystemDashboardScreen(
                 )
             }
 
-            // 6. OTHER UTILITIES
+            // 6. SHELL COMMAND (SHIZUKU)
+            item {
+                ShellCommandCard(viewModel = shellViewModel)
+            }
+
+            // 7. OTHER UTILITIES
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(

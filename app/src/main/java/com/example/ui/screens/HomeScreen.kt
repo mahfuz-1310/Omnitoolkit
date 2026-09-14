@@ -9,6 +9,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -32,6 +33,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -44,6 +46,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import android.os.SystemClock
 import android.util.Log
+import com.example.ui.components.AppLogo
 import com.example.ui.MainViewModel
 import com.example.ui.navigation.Screen
 import com.example.utils.HighRiskApp
@@ -64,7 +67,6 @@ fun HomeScreen(
     navController: NavController
 ) {
     val context = LocalContext.current
-    val resourceId = remember { context.resources.getIdentifier("omnikit_logo_1789391961077", "drawable", context.packageName) }
     val smartSuggestions by viewModel.smartSuggestions.collectAsStateWithLifecycle()
 
     // Deep All-In-One Scanner states
@@ -167,15 +169,10 @@ fun HomeScreen(
                         fontWeight = FontWeight.ExtraBold
                     )
                 }
-                if (resourceId != 0) {
-                    androidx.compose.foundation.Image(
-                        painter = painterResource(id = resourceId),
-                        contentDescription = "App Logo",
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                    )
-                }
+                AppLogo(
+                    size = 48.dp,
+                    cornerRadius = 12.dp
+                )
             }
             
             Spacer(modifier = Modifier.height(6.dp))

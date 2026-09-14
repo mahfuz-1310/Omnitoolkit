@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
+import com.example.ui.components.AppLogo
+
 @Composable
 fun SplashScreen(
     onSplashFinished: () -> Unit = {}
@@ -71,27 +73,14 @@ fun SplashScreen(
         onSplashFinished()
     }
 
-    val context = LocalContext.current
-    val resourceId = remember {
-        context.resources.getIdentifier("namegen_premium_logo_1787339369777", "drawable", context.packageName)
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.background,
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        MaterialTheme.colorScheme.background
-                    )
-                )
-            )
+            .background(Color.Black)
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
-        // Centered Animated Logo & Name
+        // Centered Animated Official Logo Asset
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -100,65 +89,13 @@ fun SplashScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // High-End Logo with Ambient Glow
-            Surface(
-                shape = RoundedCornerShape(28.dp),
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 12.dp,
-                tonalElevation = 6.dp,
-                modifier = Modifier
-                    .size(110.dp)
-                    .shadow(
-                        elevation = 16.dp,
-                        shape = RoundedCornerShape(28.dp),
-                        ambientColor = MaterialTheme.colorScheme.primary,
-                        spotColor = MaterialTheme.colorScheme.primary
-                    )
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (resourceId != 0) {
-                        Image(
-                            painter = painterResource(id = resourceId),
-                            contentDescription = "${com.example.utils.AppConstants.APP_NAME} Logo",
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(28.dp))
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = "${com.example.utils.AppConstants.APP_NAME} Logo",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(56.dp)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = com.example.utils.AppConstants.APP_NAME,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.5.sp,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = "Hyper Diagnostics & Toolkit Suite",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            AppLogo(
+                size = 180.dp,
+                cornerRadius = 28.dp
             )
         }
 
-        // Developer Credit Branding at the Bottom Center
+        // Developer Credit at the Bottom Center
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)

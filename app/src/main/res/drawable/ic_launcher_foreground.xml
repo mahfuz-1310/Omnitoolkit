@@ -3,6 +3,6 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/omnikit_logo_1789391961077"
+        android:drawable="@drawable/hyper_toolkit_logo_1789410452090"
         android:gravity="center" />
 </layer-list>

@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.toArgb
 import kotlin.math.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import com.example.ui.components.AppLogo
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -66,7 +67,6 @@ fun SettingsScreen(navController: NavController, viewModel: MainViewModel) {
     val darkMode by viewModel.darkMode.collectAsStateWithLifecycle()
     val hapticFeedback by viewModel.hapticFeedback.collectAsStateWithLifecycle()
     val soundEffects by viewModel.soundEffects.collectAsStateWithLifecycle()
-    val appIcon by viewModel.appIcon.collectAsStateWithLifecycle()
     val animations by viewModel.animationsEnabled.collectAsStateWithLifecycle()
     val floatingMode by viewModel.floatingModeEnabled.collectAsStateWithLifecycle()
     val rememberPos by viewModel.rememberFloatingPosition.collectAsStateWithLifecycle()
@@ -560,7 +560,7 @@ fun SettingsScreen(navController: NavController, viewModel: MainViewModel) {
                 ) {
                     Icon(Icons.Default.AutoAwesome, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("✨ Generate Name Preview")
+                    Text("✨ Action Button Preview")
                 }
             }
 
@@ -599,10 +599,6 @@ fun SettingsScreen(navController: NavController, viewModel: MainViewModel) {
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
 
-            // Custom App Icon Switcher Section
-            AppIconSelectorSection(viewModel = viewModel, context = context)
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-            
             ListItem(
                 headlineContent = { Text("Floating Mode", style = MaterialTheme.typography.bodyLarge) },
                 supportingContent = { Text("Show system-wide floating overlay bubble", style = MaterialTheme.typography.bodyMedium) },
@@ -981,20 +977,10 @@ fun SettingsScreen(navController: NavController, viewModel: MainViewModel) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                        modifier = Modifier.size(44.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
+                    AppLogo(
+                        size = 64.dp,
+                        cornerRadius = 16.dp
+                    )
 
                     Spacer(modifier = Modifier.height(12.dp))
 
